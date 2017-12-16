@@ -1,0 +1,12 @@
+{application, borkbork,
+ [
+  {description, "Bork bork bork!"},
+  {vsn, "0.0.1"},
+  {modules, [borkbork, b_scanner]},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {env, []}
+ ]}.
