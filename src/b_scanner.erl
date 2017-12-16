@@ -31,19 +31,22 @@ scan(<<"primitive", Rest/binary>>, State, Acc) -> scan_keyword(primitive, 9, Res
 scan(<<"silhouette", Rest/binary>>, State, Acc) -> scan_keyword(silhouette, 10, Rest, State, Acc);
 scan(<<"action", Rest/binary>>, State, Acc) -> scan_keyword(action, 6, Rest, State, Acc);
 scan(<<"insertion", Rest/binary>>, State, Acc) -> scan_keyword(insertion, 9, Rest, State, Acc);
+scan(<<"address", Rest/binary>>, State, Acc) -> scan_keyword(address, 7, Rest, State, Acc);
+scan(<<"end", Rest/binary>>, State, Acc) -> scan_keyword('end', 3, Rest, State, Acc);
 % separators
 scan(<<C/utf8, Rest/binary>>, State, Acc) when ?IS_SEPARATOR(C) ->
-    scan_separator(C, Rest, State, Acc).
+    scan_separator(C, Rest, State, Acc);
+
+scan(<<_C/utf8, Rest/binary>>, #state{position=P}=State, Acc) ->
+    scan(Rest, State#state{position=P+1}, Acc).
 
 scan_keyword(Keyword, L, Rest, #state{position=Pos}=State, Acc) ->
-    Token = token(keyword, Keyword, Pos),
+    Token = {keyword, Keyword, Pos},
     scan(Rest, State#state{position=Pos+L}, [Token | Acc]).
 
 scan_separator(Separator, Rest, #state{position=Pos}=State, Acc) ->
     Token = {Separator, Pos},
     scan(Rest, State#state{position=Pos+1}, [Token | Acc]).
-
-token(keyword, Keyword, Position) -> {keyword, Keyword, Position}.
 
 %%
 %% Tests
@@ -72,5 +75,15 @@ scan_separators_test() ->
     ?assertEqual([{$(, 0}, {$), 1}], scan(<<"()">>)),
     ?assertEqual([{${, 0}, {$}, 4}], scan(<<"{   }">>)),
     ok.
+
+scan_minimal_drakon_test() ->
+        ?assertEqual([
+            {keyword, drakon, 0},
+            %% TODO, add identifier
+            {keyword, primitive, 15},
+            {${, 25},
+            {keyword, 'end', 27},
+            {$}, 31}], scan(<<"drakon diagram primitive { end }">>)),
+        ok.
 
 -endif.

@@ -5,17 +5,22 @@ diagram = "drakon" identifier parameters? ( primitive | silhouette );
 parameters = "(" parameter_list ")";
 parameter_list = parameter | parameter "," parameter_list?;
 
-(**)
-primitive = "primitive" "{" skewer "}";
+(* A primitive is used for simple diagrams *)
+primitive = "primitive" "{" skewer "end"? "}";
 
-(* *)
+(* A silhouette is used for an algorithm which is split up in branches *)
 silhouette = "silhouette" "{" branch+ "}";
-branch = "branch" identifier "{" skewer "}";
+branch = "branch" identifier "{" skewer (address|end) "}";
 
 (* *)
-skewer = action | insertion  ;
+skewer = (action | insertion)*  ;
+
+question = "question" "(" ")" ("yes"|"no") "{" skewer address? "}"  ;
 
 action = "action";
 insertion = "insertion";
+
+address = "address" "(" identifier ")";
+end = "end";
 
 label = "(" identifier ")";
