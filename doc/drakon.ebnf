@@ -1,0 +1,21 @@
+(* *)
+
+diagram = "drakon" identifier parameters? ( primitive | silhouette );
+
+parameters = "(" parameter_list ")";
+parameter_list = parameter | parameter "," parameter_list?;
+
+(**)
+primitive = "primitive" "{" skewer "}";
+
+(* *)
+silhouette = "silhouette" "{" branch+ "}";
+branch = "branch" identifier "{" skewer "}";
+
+(* *)
+skewer = action | insertion  ;
+
+action = "action";
+insertion = "insertion";
+
+label = "(" identifier ")";
