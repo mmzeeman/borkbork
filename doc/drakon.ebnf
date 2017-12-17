@@ -23,4 +23,6 @@ insertion = "insertion";
 address = "address" "(" identifier ")";
 end = "end";
 
+stuff = "(*" anything "*)";
+
 label = "(" identifier ")";

@@ -9,7 +9,7 @@
 ]).
 
 -record(state, {
-    position = 0
+    position = 1
 }).
 
 -define(IS_WHITESPACE(C),
@@ -22,7 +22,9 @@
 scan(Data) ->
     scan(iolist_to_binary(Data), #state{}, []).
 
-scan(<<>>, _State, Acc) -> lists:reverse(Acc);
+scan(<<>>, State, Acc) ->
+    Token = {end_of_input, State#state.position-1},
+    lists:reverse([Token | Acc]);
 % skip whitespace
 scan(<<WS/utf8, Rest/binary>>, #state{position=P}=State, Acc) when ?IS_WHITESPACE(WS) -> scan(Rest, State#state{position=P+1}, Acc);
 % keywords
@@ -33,20 +35,41 @@ scan(<<"action", Rest/binary>>, State, Acc) -> scan_keyword(action, 6, Rest, Sta
 scan(<<"insertion", Rest/binary>>, State, Acc) -> scan_keyword(insertion, 9, Rest, State, Acc);
 scan(<<"address", Rest/binary>>, State, Acc) -> scan_keyword(address, 7, Rest, State, Acc);
 scan(<<"end", Rest/binary>>, State, Acc) -> scan_keyword('end', 3, Rest, State, Acc);
+scan(<<"yes", Rest/binary>>, State, Acc) -> scan_keyword(yes, 3, Rest, State, Acc);
+scan(<<"no", Rest/binary>>, State, Acc) -> scan_keyword(no, 2, Rest, State, Acc);
+% stuff
+scan(<<"(*", Rest/binary>>, #state{position=P}=State, Acc) ->
+    scan_stuff(Rest, State#state{position=P+2}, Acc);
 % separators
 scan(<<C/utf8, Rest/binary>>, State, Acc) when ?IS_SEPARATOR(C) ->
     scan_separator(C, Rest, State, Acc);
-
+% skip all unknown stuff
 scan(<<_C/utf8, Rest/binary>>, #state{position=P}=State, Acc) ->
     scan(Rest, State#state{position=P+1}, Acc).
 
-scan_keyword(Keyword, L, Rest, #state{position=Pos}=State, Acc) ->
-    Token = {keyword, Keyword, Pos},
-    scan(Rest, State#state{position=Pos+L}, [Token | Acc]).
+%%
+%% Helpers
+%%
 
-scan_separator(Separator, Rest, #state{position=Pos}=State, Acc) ->
-    Token = {Separator, Pos},
-    scan(Rest, State#state{position=Pos+1}, [Token | Acc]).
+scan_stuff(Bin, State, Acc) ->
+    {StuffData, Rest, State1} = stuff_token(Bin, State),
+    Token = {stuff, StuffData, State#state.position},
+    scan(Rest, State1, [Token |Acc]).
+
+scan_keyword(Keyword, L, Rest, #state{position=P}=State, Acc) ->
+    Token = {keyword, Keyword, P},
+    scan(Rest, State#state{position=P+L}, [Token | Acc]).
+
+scan_separator(Separator, Rest, #state{position=P}=State, Acc) ->
+    Token = {Separator, P},
+    scan(Rest, State#state{position=P+1}, [Token | Acc]).
+
+stuff_token(Bin, State) -> stuff_token(Bin, State, <<>>).
+
+stuff_token(<<"*)", Rest/binary>>, #state{position=P}=State, Acc) ->
+    {Acc, Rest, State#state{position=P+2}};
+stuff_token(<<C/utf8, Rest/binary>>, #state{position=P}=State, Acc) ->
+    stuff_token(Rest, State#state{position=P+1}, <<Acc/binary, C>>).
 
 %%
 %% Tests
@@ -56,34 +79,44 @@ scan_separator(Separator, Rest, #state{position=Pos}=State, Acc) ->
 -include_lib("eunit/include/eunit.hrl").
 
 scan_whitespace_test() ->
-    ?assertEqual([], scan(<<>>)),
-    ?assertEqual([], scan(<<"     ">>)),
-    ?assertEqual([], scan(<<"\n\t  \r">>)),
+    ?assertEqual([{end_of_input, 0}], scan(<<>>)),
+    ?assertEqual([{end_of_input, 5}], scan(<<"     ">>)),
+    ?assertEqual([{end_of_input, 5}], scan(<<"\n\t  \r">>)),
     ok.
 
 scan_keywords_test() ->
-    ?assertEqual([{keyword, drakon, 0}], scan(<<"drakon">>)),
-    ?assertEqual([{keyword, drakon, 0}, {keyword, drakon, 7}], scan(<<"drakon drakon">>)),
-    ?assertEqual([{keyword, drakon, 0}, {keyword, action, 7}], scan(<<"drakon action">>)),
     ?assertEqual([
-        {keyword, drakon, 0},
-        {keyword, primitive, 7},
-        {keyword, action, 17}], scan(<<"drakon primitive action">>)),
+        {keyword, drakon, 1},
+        {end_of_input, 6}], scan(<<"drakon">>)),
+    ?assertEqual([
+        {keyword, drakon, 1},
+        {keyword, drakon, 8},
+        {end_of_input, 13}], scan(<<"drakon drakon">>)),
+    ?assertEqual([
+        {keyword, drakon, 1},
+        {keyword, action, 8},
+        {end_of_input, 13}], scan(<<"drakon action">>)),
+    ?assertEqual([
+        {keyword, drakon, 1},
+        {keyword, primitive, 8},
+        {keyword, action, 18},
+        {end_of_input, 23}], scan(<<"drakon primitive action">>)),
     ok.
 
 scan_separators_test() ->
-    ?assertEqual([{$(, 0}, {$), 1}], scan(<<"()">>)),
-    ?assertEqual([{${, 0}, {$}, 4}], scan(<<"{   }">>)),
+    ?assertEqual([{$(, 1}, {$), 2}, {end_of_input, 2}], scan(<<"()">>)),
+    ?assertEqual([{${, 1}, {$}, 5}, {end_of_input, 5}], scan(<<"{   }">>)),
     ok.
 
 scan_minimal_drakon_test() ->
         ?assertEqual([
-            {keyword, drakon, 0},
-            %% TODO, add identifier
-            {keyword, primitive, 15},
-            {${, 25},
-            {keyword, 'end', 27},
-            {$}, 31}], scan(<<"drakon diagram primitive { end }">>)),
+            {keyword, drakon, 1},
+            {stuff, <<" S ">>, 10},
+            {keyword, primitive, 16},
+            {${, 26},
+            {keyword, 'end', 28},
+            {$}, 32},
+            {end_of_input, 32}], scan(<<"drakon (* S *) primitive { end }">>)),
         ok.
 
 -endif.
