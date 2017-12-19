@@ -43,9 +43,8 @@ scan(<<"(*", Rest/binary>>, #state{position=P}=State, Acc) ->
 % separators
 scan(<<C/utf8, Rest/binary>>, State, Acc) when ?IS_SEPARATOR(C) ->
     scan_separator(C, Rest, State, Acc);
-% skip all unknown stuff
-scan(<<_C/utf8, Rest/binary>>, #state{position=P}=State, Acc) ->
-    scan(Rest, State#state{position=P+1}, Acc).
+% collect all unknown as identifier
+scan(Rest, State, Acc) -> scan_identifier(Rest, State, Acc).
 
 %%
 %% Helpers
@@ -54,6 +53,11 @@ scan(<<_C/utf8, Rest/binary>>, #state{position=P}=State, Acc) ->
 scan_stuff(Bin, State, Acc) ->
     {StuffData, Rest, State1} = stuff_token(Bin, State),
     Token = {stuff, StuffData, State#state.position},
+    scan(Rest, State1, [Token |Acc]).
+
+scan_identifier(Bin, State, Acc) ->
+    {IdentifierData, Rest, State1} = identifier_token(Bin, State),
+    Token = {identifier, IdentifierData, State#state.position},
     scan(Rest, State1, [Token |Acc]).
 
 scan_keyword(Keyword, L, Rest, #state{position=P}=State, Acc) ->
@@ -66,10 +70,23 @@ scan_separator(Separator, Rest, #state{position=P}=State, Acc) ->
 
 stuff_token(Bin, State) -> stuff_token(Bin, State, <<>>).
 
+stuff_token(<<>>, #state{position=P}=State, Acc) ->
+    {Acc, <<>>, State#state{position=P}};
 stuff_token(<<"*)", Rest/binary>>, #state{position=P}=State, Acc) ->
     {Acc, Rest, State#state{position=P+2}};
 stuff_token(<<C/utf8, Rest/binary>>, #state{position=P}=State, Acc) ->
     stuff_token(Rest, State#state{position=P+1}, <<Acc/binary, C>>).
+
+identifier_token(Bin, State) -> identifier_token(Bin, State, <<>>).
+
+identifier_token(<<>>, #state{position=P}=State, Acc) ->
+    {Acc, <<>>, State#state{position=P}};
+identifier_token(<<S/utf8, _/binary>> = Bin, State, Acc) when ?IS_SEPARATOR(S) ->
+    {Acc, Bin, State};
+identifier_token(<<WS/utf8, _/binary>> = Bin, State, Acc) when ?IS_WHITESPACE(WS) ->
+    {Acc, Bin, State};
+identifier_token(<<C/utf8, Rest/binary>>, #state{position=P}=State, Acc) ->
+    identifier_token(Rest, State#state{position=P+1}, <<Acc/binary, C>>).
 
 %%
 %% Tests
@@ -118,5 +135,19 @@ scan_minimal_drakon_test() ->
             {$}, 32},
             {end_of_input, 32}], scan(<<"drakon (* S *) primitive { end }">>)),
         ok.
+
+scan_minimal1_drakon_test() ->
+        ?assertEqual([
+            {keyword, drakon, 1},
+            {$(, 8},
+            {identifier, <<"S">>, 9},
+            {$), 10},
+            {keyword, primitive, 12},
+            {${, 22},
+            {keyword, 'end', 24},
+            {$}, 28},
+            {end_of_input, 28}], scan(<<"drakon (S) primitive { end }">>)),
+        ok.
+
 
 -endif.
