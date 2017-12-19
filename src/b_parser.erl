@@ -12,31 +12,50 @@
     name,
     parameters,
 
-    diagram % primitive | silhouette
+    diagram, % primitive | silhouette
+
+    attributes = #{}
 }).
 
 -record(primitive, {
-    skewer % The skewer's end-point should have "end" as end_point
+    skewer, % The skewer's end-point should have "end" as end_point
+
+    attributes = #{}
 }).
 
 -record(silhouette, {
-    branches = []
+    branches = [],
+
+    attributes = #{}
 }).
 
 -record(branch, {
     header,
 
-    skewer
+    skewer,
+
+    attributes = #{}
 }).
 
 -record(skewer, {
     list = [], % The sequence of items on the skewer.
 
-    end_point = undefined % "end" | address The label to which the skewer connects.
+    end_point = undefined, % "end" | address The label to which the skewer connects.
+
+    attributes = #{}
 }).
 
--record(action, { icon_content }).
--record(insertion, { icon_content }).
+-record(action, {
+    icon_content,
+
+    attributes = #{}
+}).
+
+-record(insertion, {
+    icon_content,
+
+    attributes = #{}
+}).
 
 % parse(borkbork:tokens()) -> borkbork:parse_tree()
 parse([{keyword, drakon, P} | Rest]) ->
@@ -60,10 +79,12 @@ parse([{keyword, drakon, P} | Rest]) ->
         name = IconContent,
         parameters = Parameters,
 
-        diagram = Diagram
+        diagram = Diagram,
+
+        attributes = #{start_position => P}
     }.
 
-parse_primitive([{keyword, primitive, P}, {${, P1} | Rest]) ->
+parse_primitive([{keyword, primitive, P}, {${, _P1} | Rest]) ->
     {Skewer, Rest1} = parse_skewer(Rest),
 
     R = case Rest1 of
@@ -73,9 +94,9 @@ parse_primitive([{keyword, primitive, P}, {${, P1} | Rest]) ->
             syntax_error()
     end,
 
-    {#primitive{skewer=Skewer}, R}.
+    {#primitive{skewer=Skewer, attributes = #{start_position => P}}, R}.
 
-parse_silhouette([{keyword, silhouette, P} | Rest]) ->
+parse_silhouette([{keyword, silhouette, _P} | Rest]) ->
     ok.
 
 syntax_error() ->
@@ -105,29 +126,25 @@ parse_skewer([{keyword, question, _P} | _]=QuestionStart, Acc) ->
 parse_skewer(Unknown, Acc) ->
     {lists:reverse(Acc), Unknown}.
 
-parse_action([{keyword, action, _P} | Rest]) ->
+parse_action([{keyword, action, P} | Rest]) ->
     {IconContent, Rest1} = parse_icon_content(Rest),
-    {#action{icon_content=IconContent}, Rest1}.
+    {#action{icon_content=IconContent, attributes=#{start_position=>P}}, Rest1}.
 
-parse_insertion([{keyword, insertion, _P} | Rest]) ->
+parse_insertion([{keyword, insertion, P} | Rest]) ->
     {IconContent, Rest1} = parse_icon_content(Rest),
-    {#insertion{icon_content=IconContent}, Rest1}.
+    {#insertion{icon_content=IconContent, attributes=#{start_position=>P}}, Rest1}.
 
-optional_parse_icon_content([{stuff, Stuff, _P}|_]=IconStart) ->
-    parse_icon_content(IconStart);
-optional_parse_icon_content([{$(, _P}|_]=IconStart) ->
-    parse_icon_content(IconStart);
-optional_parse_icon_content(Rest) ->
-    {undefined, Rest}.
+optional_parse_icon_content([{stuff, _, _}|_]=IconStart) -> parse_icon_content(IconStart);
+optional_parse_icon_content([{$(, _}|_]=IconStart) -> parse_icon_content(IconStart);
+optional_parse_icon_content(Rest) -> {undefined, Rest}.
 
-parse_icon_content([{stuff, Stuff, _P} | Rest]) ->
-    {Stuff, Rest};
+parse_icon_content([{stuff, Stuff, _P} | Rest]) -> {Stuff, Rest};
 parse_icon_content([{$(, _}, {identifier, Identifier, _}, {$), _} | Rest]) ->
     {Identifier, Rest};
 parse_icon_content(_) ->
     syntax_error().
 
-parse_question(L) -> ok.
+parse_question(_L) -> todo.
 
 %%
 %% Tests
@@ -138,31 +155,36 @@ parse_question(L) -> ok.
 
 parse_skewer_test() ->
     T1 = b_scanner:scan(""),
-    ?assertEqual({#skewer{}, [{end_of_input, 0}]}, parse_skewer(T1)),
+    ?assertMatch({#skewer{}, [{end_of_input, 0}]}, parse_skewer(T1)),
 
     T2 = b_scanner:scan("end"),
-    ?assertEqual({#skewer{end_point='end'},
+    ?assertMatch({#skewer{end_point='end', attributes=_},
         [{end_of_input, 3}]}, parse_skewer(T2)),
 
     T3 = b_scanner:scan("action (* foo *) end"),
-    ?assertEqual({#skewer{
-            list=[{action,<<" foo ">>}],
-            end_point='end'},
+    ?assertMatch({#skewer{
+            list=[
+                #action{icon_content= <<" foo ">>, attributes=_}
+            ],
+            end_point='end',
+            attributes=_},
         [{end_of_input,20}]}, parse_skewer(T3)),
 
     ok.
 
 parse_primitive_drakon_test() ->
     T1 = b_scanner:scan("drakon (* test *) primitive { end }"),
-    ?assertEqual(#drakon{
+    ?assertMatch(#drakon{
         name = <<" test ">>,
         parameters = undefined,
         diagram = #primitive{
             skewer = #skewer{
                 list=[],
-                end_point='end'
+                end_point='end',
+                attributes=_
             }
-        }
+        },
+        attributes=_
     }, parse(T1)),
     ok.
 
