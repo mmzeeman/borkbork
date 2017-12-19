@@ -1,9 +1,8 @@
 (* *)
 
-diagram = "drakon" identifier parameters? ( primitive | silhouette );
+diagram = "drakon" icon_content parameters? ( primitive | silhouette );
 
-parameters = "(" parameter_list ")";
-parameter_list = parameter | parameter "," parameter_list?;
+parameters = icon_content;
 
 (* A primitive is used for simple diagrams *)
 primitive = "primitive" "{" skewer "end"? "}";
@@ -13,16 +12,18 @@ silhouette = "silhouette" "{" branch+ "}";
 branch = "branch" identifier "{" skewer (address|end) "}";
 
 (* *)
-skewer = (action | insertion)*  ;
+skewer = (action | insertion)*;
 
-question = "question" "(" ")" ("yes"|"no") "{" skewer address? "}"  ;
+(* Skewer stuff *)
+question = "question" icon_content ("yes"|"no") "{" skewer address? "}";
 
-action = "action";
-insertion = "insertion";
+action = "action" icon_content;
+insertion = "insertion" icon_content;
 
 address = "address" "(" identifier ")";
 end = "end";
 
-stuff = "(*" anything "*)";
+icon_content = ("(" identifier ")") | stuff;
+stuff =  "(*" anything "*)";
 
-label = "(" identifier ")";
+label = "#" identifier;
