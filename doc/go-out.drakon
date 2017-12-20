@@ -1,0 +1,8 @@
+drakon (* Go out *) primitive {
+    action (* Put on clothes *)
+    question (* Is it raining? *) yes {
+        action (* Take umbrella *)
+    }
+    action (* Leave the house *)
+    end
+}
