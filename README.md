@@ -15,8 +15,8 @@ drakon (* Good day *) primitive {
 }
 ```
 
-Will be transformed to: 
+Will be transformed into an easy to understand Drakon diagram.
 
-https://cdn.rawgit.com/mmzeeman/borkbork/5ffbcf02/doc/good-day.html
+Link to svg diagram: https://cdn.rawgit.com/mmzeeman/borkbork/5ffbcf02/doc/good-day.html
 
 [![Popcorn](https://img.youtube.com/vi/B7UmUX68KtE/0.jpg)](https://www.youtube.com/watch?v=B7UmUX68KtE)
