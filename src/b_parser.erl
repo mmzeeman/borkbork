@@ -18,7 +18,7 @@
 }).
 
 -record(primitive, {
-    skewer, % The skewer's end-point should have "end" as end_point
+    skewer,
 
     attributes = #{}
 }).
@@ -39,8 +39,6 @@
 
 -record(skewer, {
     list = [], % The sequence of items on the skewer.
-
-    end_point = undefined, % "end" | address The label to which the skewer connects.
 
     attributes = #{}
 }).
@@ -87,16 +85,19 @@ parse([{keyword, drakon, P} | Rest]) ->
 parse_primitive([{keyword, primitive, P}, {${, _P1} | Rest]) ->
     {Skewer, Rest1} = parse_skewer(Rest),
 
-    R = case Rest1 of
-        [{$}, _P} | Rest2] -> Rest2;
-        _ ->
-            % missing }
-            syntax_error()
+    Rest3 = case Rest1 of
+        [{keyword, 'end', _P2} | Rest2]  -> Rest2;
+        _ -> Rest1
     end,
 
-    {#primitive{skewer=Skewer, attributes = #{start_position => P}}, R}.
+    Rest5 = case Rest3 of
+        [{$}, _P3} | Rest4] -> Rest4;
+        _ -> syntax_error() % missing }
+    end,
 
-parse_silhouette([{keyword, silhouette, _P} | Rest]) ->
+    {#primitive{skewer=Skewer, attributes = #{start_position => P}}, Rest5}.
+
+parse_silhouette([{keyword, silhouette, _P} | _Rest]) ->
     ok.
 
 syntax_error() ->
@@ -108,11 +109,7 @@ syntax_error() ->
 
 parse_skewer(Tokens) ->
     {List, Rest} = parse_skewer(Tokens, []),
-    {EndPoint, Rest2} = case Rest of
-        [{keyword, 'end', _P} | Rest1]  -> {'end', Rest1};
-        _ -> {undefined, Rest}
-    end,
-    {#skewer{list=List, end_point=EndPoint}, Rest2}.
+    {#skewer{list=List}, Rest}.
 
 parse_skewer([{keyword, action, _P} | _]=ActionStart, Acc) ->
     {Action, Rest} = parse_action(ActionStart),
@@ -155,20 +152,22 @@ parse_question(_L) -> todo.
 
 parse_skewer_test() ->
     T1 = b_scanner:scan(""),
-    ?assertMatch({#skewer{}, [{end_of_input, 0}]}, parse_skewer(T1)),
+    ?assertMatch({#skewer{
+        list=[],
+        attributes=_}, [{end_of_input, 0}]}, parse_skewer(T1)),
 
     T2 = b_scanner:scan("end"),
-    ?assertMatch({#skewer{end_point='end', attributes=_},
-        [{end_of_input, 3}]}, parse_skewer(T2)),
+    ?assertMatch({#skewer{
+        list=[],
+        attributes=_}, [{keyword, 'end', 1}, {end_of_input, 3}]}, parse_skewer(T2)),
 
     T3 = b_scanner:scan("action (* foo *) end"),
     ?assertMatch({#skewer{
             list=[
                 #action{icon_content= <<" foo ">>, attributes=_}
             ],
-            end_point='end',
             attributes=_},
-        [{end_of_input,20}]}, parse_skewer(T3)),
+        [{keyword, 'end', 18}, {end_of_input, 20}]}, parse_skewer(T3)),
 
     ok.
 
@@ -180,7 +179,6 @@ parse_primitive_drakon_test() ->
         diagram = #primitive{
             skewer = #skewer{
                 list=[],
-                end_point='end',
                 attributes=_
             }
         },
