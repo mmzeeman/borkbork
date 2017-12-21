@@ -43,6 +43,16 @@
     attributes = #{}
 }).
 
+-record(question, {
+    icon_content,
+
+    right_label,
+    right_skewer,
+    right_address,
+
+    attributes = #{}
+}).
+
 -record(action, {
     icon_content,
 
@@ -51,6 +61,12 @@
 
 -record(insertion, {
     icon_content,
+
+    attributes = #{}
+}).
+
+-record(address, {
+    label,
 
     attributes = #{}
 }).
@@ -141,7 +157,54 @@ parse_icon_content([{$(, _}, {identifier, Identifier, _}, {$), _} | Rest]) ->
 parse_icon_content(_) ->
     syntax_error().
 
-parse_question(_L) -> todo.
+parse_question([{keyword, question, P}|Rest]) ->
+    {IconContent, Rest1} = parse_icon_content(Rest),
+
+    {RightLabel, Rest3} = case Rest1 of
+        [{keyword, yes, _P1}|Rest2] -> {yes, Rest2};
+        [{keyword, no, _P1}|Rest2] -> {no, Rest2};
+        _ -> syntax_error()
+    end,
+
+    Rest5 = case Rest3 of
+        [{${, _P2} | Rest4] -> Rest4;
+        _ -> syntax_error() % missing {
+    end,
+
+    {Skewer, Rest6} = parse_skewer(Rest5),
+    {Address, Rest7} = parse_address(Rest6),
+
+    Rest9 = case Rest7 of
+        [{$}, _P3} | Rest8] -> Rest8;
+        _ -> syntax_error() % missing }
+    end,
+
+    {#question{
+        icon_content = IconContent,
+
+        right_label = RightLabel,
+        right_skewer = Skewer,
+        right_address = Address,
+
+        attributes=#{start_position => P}
+    }, Rest9}.
+
+parse_address([{keyword, address, P}|Rest]) ->
+    Rest2 = case Rest of
+        [{$(, _P2} | Rest1] -> Rest1;
+        _ -> syntax_error() % missing (
+    end,
+
+    % TODO, get identifier.
+    Identifier = <<"todo">>,
+
+    Rest4 = case Rest2 of
+        [{$), _P3} | Rest3] -> Rest3;
+        _ -> syntax_error() % missing (
+    end,
+
+    {#address{label=Identifier, attributes=#{start_position => P}}, Rest4}.
+
 
 %%
 %% Tests
