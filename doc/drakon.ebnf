@@ -5,25 +5,25 @@ diagram = "drakon" icon_content parameters? ( primitive | silhouette );
 parameters = icon_content;
 
 (* A primitive is used for simple diagrams *)
-primitive = "primitive" "{" skewer "end"? "}";
+primitive = "primitive" "{" skewer "}" "end"?;
 
 (* A silhouette is used for an algorithm which is split up in branches *)
 silhouette = "silhouette" "{" branch+ "}";
-branch = "branch" identifier "{" skewer (address|end) "}";
+branch = "branch" icon_content "{" skewer "}" (address|end);
+address = "address" icon_content;
 
 (* *)
-skewer = (action | insertion)*;
+skewer = (question | action | insertion)*;
 
 (* Skewer stuff *)
-question = "question" icon_content ("yes"|"no") "{" skewer address? "}";
+question = "question" icon_content ("yes"|"no") "{" skewer "}" (link|address)?;
+link = "link" "(" identifier ")"; (* Links to a connector *)
 
 action = "action" icon_content;
 insertion = "insertion" icon_content;
+connector = "connector" "(" identifier ")"; (* Target for links *)
 
-address = "address" "(" identifier ")";
 end = "end";
 
-icon_content = ("(" identifier ")") | stuff;
-stuff =  "(*" anything "*)";
-
-label = "#" identifier;
+icon_content = ( "(" identifier ")") | stuff;
+stuff =  "(*" anything "*)"; (* Like comment or literal programming *)
