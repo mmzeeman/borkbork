@@ -108,7 +108,7 @@ parse_primitive([{keyword, primitive, P}, {${, _P1} | Rest]) ->
 
     Rest5 = case Rest3 of
         [{$}, _P3} | Rest4] -> Rest4;
-        _ -> syntax_error() % missing }
+        _ -> syntax_error("Missing }", Rest3) % missing }
     end,
 
     {#primitive{skewer=Skewer, attributes = #{start_position => P}}, Rest5}.
@@ -116,8 +116,9 @@ parse_primitive([{keyword, primitive, P}, {${, _P1} | Rest]) ->
 parse_silhouette([{keyword, silhouette, _P} | _Rest]) ->
     ok.
 
-syntax_error() ->
-    throw(syntax_error).
+syntax_error() -> syntax_error(unkown).
+syntax_error(Message) -> syntax_error(Message, []).
+syntax_error(Message, Tokens) -> throw({syntax_error, Message, Tokens}).
 
 %%
 %% Helpers
@@ -192,7 +193,7 @@ parse_question([{keyword, question, P}|Rest]) ->
 parse_address([{keyword, address, P}|Rest]) ->
     Rest2 = case Rest of
         [{$(, _P2} | Rest1] -> Rest1;
-        _ -> syntax_error() % missing (
+        _ -> syntax_error("Missing (", Rest) % missing (
     end,
 
     % TODO, get identifier.
@@ -200,7 +201,7 @@ parse_address([{keyword, address, P}|Rest]) ->
 
     Rest4 = case Rest2 of
         [{$), _P3} | Rest3] -> Rest3;
-        _ -> syntax_error() % missing (
+        _ -> syntax_error("Missing )", Rest2) % missing (
     end,
 
     {#address{label=Identifier, attributes=#{start_position => P}}, Rest4}.
@@ -248,5 +249,11 @@ parse_primitive_drakon_test() ->
         attributes=_
     }, parse(T1)),
     ok.
+
+parse_primitive_with_question_test() ->
+    T1 = b_scanner:scan("drakon (test) primitive { question(is_test) no { address() }  end }"),
+    ?assertMatch([], parse(T1)),
+    ok.
+
 
 -endif.
