@@ -32,8 +32,11 @@ scan(<<"drakon", Rest/binary>>, State, Acc) -> scan_keyword(drakon, 6, Rest, Sta
 scan(<<"primitive", Rest/binary>>, State, Acc) -> scan_keyword(primitive, 9, Rest, State, Acc);
 scan(<<"silhouette", Rest/binary>>, State, Acc) -> scan_keyword(silhouette, 10, Rest, State, Acc);
 scan(<<"action", Rest/binary>>, State, Acc) -> scan_keyword(action, 6, Rest, State, Acc);
+scan(<<"question", Rest/binary>>, State, Acc) -> scan_keyword(question, 8, Rest, State, Acc);
 scan(<<"insertion", Rest/binary>>, State, Acc) -> scan_keyword(insertion, 9, Rest, State, Acc);
 scan(<<"address", Rest/binary>>, State, Acc) -> scan_keyword(address, 7, Rest, State, Acc);
+scan(<<"link", Rest/binary>>, State, Acc) -> scan_keyword(link, 4, Rest, State, Acc);
+scan(<<"connector", Rest/binary>>, State, Acc) -> scan_keyword(connector, 9, Rest, State, Acc);
 scan(<<"end", Rest/binary>>, State, Acc) -> scan_keyword('end', 3, Rest, State, Acc);
 scan(<<"yes", Rest/binary>>, State, Acc) -> scan_keyword(yes, 3, Rest, State, Acc);
 scan(<<"no", Rest/binary>>, State, Acc) -> scan_keyword(no, 2, Rest, State, Acc);
