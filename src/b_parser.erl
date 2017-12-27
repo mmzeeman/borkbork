@@ -66,7 +66,13 @@
 }).
 
 -record(address, {
-    label,
+    icon_content,
+
+    attributes = #{}
+}).
+
+-record(link, {
+    identifier,
 
     attributes = #{}
 }).
@@ -98,17 +104,15 @@ parse([{keyword, drakon, P} | Rest]) ->
         attributes = #{start_position => P}
     }.
 
-parse_primitive([{keyword, primitive, P}, {${, _P1} | Rest]) ->
-    {Skewer, Rest1} = parse_skewer(Rest),
+parse_primitive([{keyword, primitive, P} | Rest]) ->
+    Rest1 = skip(required, ${, Rest),
+    {Skewer, Rest2} = parse_skewer(Rest1),
+    Rest3 = skip(required, $}, Rest2),
 
-    Rest3 = case Rest1 of
-        [{keyword, 'end', _P2} | Rest2]  -> Rest2;
-        _ -> Rest1
-    end,
-
+    %% Optional end
     Rest5 = case Rest3 of
-        [{$}, _P3} | Rest4] -> Rest4;
-        _ -> syntax_error("Missing }", Rest3) % missing }
+        [{keyword, 'end', _P2} | Rest4]  -> Rest4;
+        _ -> Rest3
     end,
 
     {#primitive{skewer=Skewer, attributes = #{start_position => P}}, Rest5}.
@@ -153,58 +157,72 @@ optional_parse_icon_content([{$(, _}|_]=IconStart) -> parse_icon_content(IconSta
 optional_parse_icon_content(Rest) -> {undefined, Rest}.
 
 parse_icon_content([{stuff, Stuff, _P} | Rest]) -> {Stuff, Rest};
-parse_icon_content([{$(, _}, {identifier, Identifier, _}, {$), _} | Rest]) ->
-    {Identifier, Rest};
-parse_icon_content(_) ->
-    syntax_error().
+parse_icon_content([{$(, _} | Rest]) ->
+    {Identifier, Rest1} = parse_identifier(Rest),
+    Rest2 = skip(required, $), Rest1),
+    {Identifier, Rest2};
+parse_icon_content(Rest) -> syntax_error("Expected icon content", Rest).
+
+parse_identifier([{identifier, Identifier, _}| Rest]) -> {Identifier, Rest};
+parse_identifier(Rest) -> syntax_error("Expected an identifier", Rest).
 
 parse_question([{keyword, question, P}|Rest]) ->
     {IconContent, Rest1} = parse_icon_content(Rest),
 
+    %% yes | no
     {RightLabel, Rest3} = case Rest1 of
         [{keyword, yes, _P1}|Rest2] -> {yes, Rest2};
         [{keyword, no, _P1}|Rest2] -> {no, Rest2};
         _ -> syntax_error()
     end,
 
-    Rest5 = case Rest3 of
-        [{${, _P2} | Rest4] -> Rest4;
-        _ -> syntax_error() % missing {
-    end,
+    %% {
+    Rest5 = skip(required, ${, Rest3),
 
+    %% Skewer
     {Skewer, Rest6} = parse_skewer(Rest5),
-    {Address, Rest7} = parse_address(Rest6),
 
-    Rest9 = case Rest7 of
-        [{$}, _P3} | Rest8] -> Rest8;
-        _ -> syntax_error() % missing }
+    %% Required }
+    Rest7 = skip(required, $}, Rest6),
+
+    %% Optional link | address
+    {LinkOrAddress, Rest8} = case Rest7 of
+        [{keyword, address, _PAddress}|_]-> parse_address(Rest7);
+        [{keyword, link, _PLink}|_] -> parse_link(Rest7);
+        _ -> {undefined, Rest7}
     end,
+
+    %% Done
 
     {#question{
         icon_content = IconContent,
 
         right_label = RightLabel,
         right_skewer = Skewer,
-        right_address = Address,
+        right_address = LinkOrAddress,
 
         attributes=#{start_position => P}
-    }, Rest9}.
+    }, Rest8}.
 
 parse_address([{keyword, address, P}|Rest]) ->
-    Rest2 = case Rest of
-        [{$(, _P2} | Rest1] -> Rest1;
-        _ -> syntax_error("Missing (", Rest) % missing (
-    end,
+    Rest1 = skip(required, $(, Rest),
+    {IconContent, Rest2} = parse_icon_content(Rest1),
+    Rest3 = skip(required, $), Rest2),
+    {#address{icon_content=IconContent, attributes=#{start_position => P}}, Rest3}.
 
-    % TODO, get identifier.
-    Identifier = <<"todo">>,
+parse_link([{keyword, link, P}|Rest]) ->
+    Rest1 = skip(required, $(, Rest),
+    {Identifier, Rest2} = parse_identifier(Rest1),
+    Rest3 = skip(required, $), Rest2),
+    {#link{identifier=Identifier, attributes=#{start_position => P}}, Rest3}.
 
-    Rest4 = case Rest2 of
-        [{$), _P3} | Rest3] -> Rest3;
-        _ -> syntax_error("Missing )", Rest2) % missing (
-    end,
+%%
+%% Helpers
+%%
 
-    {#address{label=Identifier, attributes=#{start_position => P}}, Rest4}.
+skip(_, Char, [{Char, _P}|Rest]) -> Rest;
+skip(required, Char, Rest) -> syntax_error("Missing " ++ [Char], Rest);
+skip(optional, _Char, [_|Rest]) -> Rest.
 
 
 %%
@@ -236,7 +254,7 @@ parse_skewer_test() ->
     ok.
 
 parse_primitive_drakon_test() ->
-    T1 = b_scanner:scan("drakon (* test *) primitive { end }"),
+    T1 = b_scanner:scan("drakon (* test *) primitive { } end"),
     ?assertMatch(#drakon{
         name = <<" test ">>,
         parameters = undefined,
@@ -251,9 +269,27 @@ parse_primitive_drakon_test() ->
     ok.
 
 parse_primitive_with_question_test() ->
-    T1 = b_scanner:scan("drakon (test) primitive { question(is_test) no { address() }  end }"),
-    ?assertMatch([], parse(T1)),
+    T1 = b_scanner:scan("drakon (test) primitive { question(is_test) no { }  }"),
+    ?assertMatch(#drakon{
+        name = <<"test">>,
+        parameters = undefined,
+        diagram = #primitive{
+            skewer = #skewer{
+                list = [
+                    #question{
+                        icon_content = <<"is_test">>,
+                        right_label = no,
+                        right_skewer = #skewer{
+                            list = []
+                        },
+                        right_address = undefined,
+                        attributes = _
+                    }
+                ],
+                attributes = _
+            }
+        }
+    },  parse(T1)),
     ok.
-
 
 -endif.
