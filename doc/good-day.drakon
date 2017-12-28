@@ -2,5 +2,4 @@ drakon (* Good day *) primitive {
     action (* Eat breakfast *)
     action (* Eat lunch *)
     action (* Eat dinner *)
-    end
-}
+} end

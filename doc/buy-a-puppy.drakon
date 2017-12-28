@@ -1,16 +1,16 @@
 drakon (* Buy a puppy *) primitive {
     question (* Do you have money? *) no {
-        address ( done )
-    }
+    } link(done)
+ 
     question (* Are puppies on sale today *) no {
-        address ( done )
-    }
+    } link(done)
+
     action (* Find a puppy *)
+
     question (* Do you like the puppy? *) no {
-        address ( done )
-    }
+    } link(done)
+
     action (* Buy this cute puppy *)
-    label ( done )
-    end
+
+    label(done)
 }
-    

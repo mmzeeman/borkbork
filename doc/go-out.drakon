@@ -4,5 +4,4 @@ drakon (* Go out *) primitive {
         action (* Take umbrella *)
     }
     action (* Leave the house *)
-    end
-}
+} end

@@ -1,0 +1,19 @@
+
+
+drakon (* Register user *) silhouette {
+    branch (* Check user name *) {
+        action(* Trim user name *)
+
+        question (* Is user name empty ? *) yes {
+        } link(error)
+
+        question (* Is user name too long? *) yes {
+        } link(error)
+
+        question (* Does the name contain
+            unsupported characters? *) yes {
+                connector(error)
+        } address (* Error *)
+
+    } address (* Check email *)
+}
