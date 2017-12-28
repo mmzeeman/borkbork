@@ -31,6 +31,7 @@ scan(<<WS/utf8, Rest/binary>>, #state{position=P}=State, Acc) when ?IS_WHITESPAC
 scan(<<"drakon", Rest/binary>>, State, Acc) -> scan_keyword(drakon, 6, Rest, State, Acc);
 scan(<<"primitive", Rest/binary>>, State, Acc) -> scan_keyword(primitive, 9, Rest, State, Acc);
 scan(<<"silhouette", Rest/binary>>, State, Acc) -> scan_keyword(silhouette, 10, Rest, State, Acc);
+scan(<<"branch", Rest/binary>>, State, Acc) -> scan_keyword(branch, 6, Rest, State, Acc);
 scan(<<"action", Rest/binary>>, State, Acc) -> scan_keyword(action, 6, Rest, State, Acc);
 scan(<<"question", Rest/binary>>, State, Acc) -> scan_keyword(question, 8, Rest, State, Acc);
 scan(<<"insertion", Rest/binary>>, State, Acc) -> scan_keyword(insertion, 9, Rest, State, Acc);

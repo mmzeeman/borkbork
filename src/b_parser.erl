@@ -29,16 +29,16 @@
     attributes = #{}
 }).
 
--record(branch, {
-    header,
-
-    skewer,
+-record(skewer, {
+    list = [], % The sequence of items on the skewer.
 
     attributes = #{}
 }).
 
--record(skewer, {
-    list = [], % The sequence of items on the skewer.
+-record(branch, {
+    icon_content,
+    skewer,
+    address,
 
     attributes = #{}
 }).
@@ -117,8 +117,44 @@ parse_primitive([{keyword, primitive, P} | Rest]) ->
 
     {#primitive{skewer=Skewer, attributes = #{start_position => P}}, Rest5}.
 
-parse_silhouette([{keyword, silhouette, _P} | _Rest]) ->
-    ok.
+parse_silhouette([{keyword, silhouette, P} | Rest]) ->
+    Rest1 = skip(required, ${, Rest),
+    {Branches, Rest2} = parse_branches(Rest1),
+    Rest3 = skip(required, $}, Rest2),
+
+    {#silhouette{branches=Branches, attributes = #{start_position => P}}, Rest3}.
+
+parse_branches([{keyword, branch, P}|_]=Tokens) ->
+    {Branches, Rest} = parse_branches(Tokens, []);
+parse_branches(Tokens) ->
+    syntax_error("Expected a branch", Tokens).
+
+parse_branches([{keyword, branch, P}|Rest]=BranchStart, Acc) ->
+    {Branch, Rest1} = parse_branch(BranchStart),
+    parse_branches(Rest1, [Branch|Acc]);
+parse_branches(Tokens, Acc) ->
+    {lists:reverse(Acc), Tokens}.
+
+parse_branch([{keyword, branch, P}|Rest]) ->
+    {IconContent, Rest1} = parse_icon_content(Rest),
+    Rest2 = skip(required, ${, Rest1),
+    {Skewer, Rest3} = parse_skewer(Rest2),
+    Rest4 = skip(required, $}, Rest3),
+
+    % (address|end)
+    {AddressOrEnd, Rest6} = case Rest4 of
+        [{keyword, 'end', EndPosition} | Rest5] -> {'end', Rest5};
+        [{keyword, address, _}|_]=AddressStart -> parse_address(AddressStart);
+        _ -> syntax_error("Expected an address or end", Rest4)
+    end,
+
+    {#branch{icon_content=IconContent, skewer=Skewer, address=AddressOrEnd, attributes=#{start_position => P}}, Rest6};
+
+parse_branch(Tokens) ->
+    syntax_error("Expected a branch", Tokens).
+
+
+
 
 syntax_error() -> syntax_error(unkown).
 syntax_error(Message) -> syntax_error(Message, []).
@@ -128,9 +164,14 @@ syntax_error(Message, Tokens) -> throw({syntax_error, Message, Tokens}).
 %% Helpers
 %%
 
-parse_skewer(Tokens) ->
+parse_skewer([Token|_]=Tokens) ->
     {List, Rest} = parse_skewer(Tokens, []),
-    {#skewer{list=List}, Rest}.
+    {#skewer{list=List, attributes=#{start_position => position(Token)} }, Rest}.
+
+position({keyword, Keyword, Position}) when is_atom(Keyword) -> Position;
+position({Char, Position}) when is_integer(Char) -> Position;
+position({end_of_input, Position}) -> Position.
+
 
 parse_skewer([{keyword, action, _P} | _]=ActionStart, Acc) ->
     {Action, Rest} = parse_action(ActionStart),
@@ -205,10 +246,8 @@ parse_question([{keyword, question, P}|Rest]) ->
     }, Rest8}.
 
 parse_address([{keyword, address, P}|Rest]) ->
-    Rest1 = skip(required, $(, Rest),
-    {IconContent, Rest2} = parse_icon_content(Rest1),
-    Rest3 = skip(required, $), Rest2),
-    {#address{icon_content=IconContent, attributes=#{start_position => P}}, Rest3}.
+    {IconContent, Rest1} = parse_icon_content(Rest),
+    {#address{icon_content=IconContent, attributes=#{start_position => P}}, Rest1}.
 
 parse_link([{keyword, link, P}|Rest]) ->
     Rest1 = skip(required, $(, Rest),
@@ -291,5 +330,20 @@ parse_primitive_with_question_test() ->
         }
     },  parse(T1)),
     ok.
+
+parse_silhouette_test() ->
+    T1 = b_scanner:scan("drakon (test) silhouette{ branch(a) { } address(b) branch(b) {} end  }"),
+    ?assertMatch(#drakon{
+        name = <<"test">>,
+        parameters = undefined,
+        diagram = #silhouette{
+            branches = [
+                #branch{icon_content = <<"a">>, skewer = _, address = _,  attributes = _},
+                #branch{icon_content = <<"b">>, skewer = _, address = 'end', attributes = _}
+            ],
+            attributes = _
+        }
+    }, parse(T1)).
+
 
 -endif.
