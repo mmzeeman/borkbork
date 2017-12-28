@@ -12,7 +12,7 @@ drakon (* Register user *) silhouette {
 
         question (* Does the name contain
             unsupported characters? *) yes {
-                connector(error)
+                label(error)
         } address (* Error *)
 
     } address (* Check email *)

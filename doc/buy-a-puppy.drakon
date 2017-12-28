@@ -12,5 +12,5 @@ drakon (* Buy a puppy *) primitive {
 
     action (* Buy this cute puppy *)
 
-    label(done)
+    connector(done)
 }

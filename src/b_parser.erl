@@ -77,6 +77,12 @@
     attributes = #{}
 }).
 
+-record(connector, {
+    identifier,
+
+    attributes = #{}
+}).
+
 % parse(borkbork:tokens()) -> borkbork:parse_tree()
 parse([{keyword, drakon, P} | Rest]) ->
     {IconContent, Rest1} = parse_icon_content(Rest),
@@ -180,6 +186,9 @@ parse_skewer([{keyword, insertion, _P} | _]=InsertionStart, Acc) ->
 parse_skewer([{keyword, question, _P} | _]=QuestionStart, Acc) ->
     {Question, Rest} = parse_question(QuestionStart),
     parse_skewer(Rest, [Question|Acc]);
+parse_skewer([{keyword, connector, _P} | _]=ConnectorStart, Acc) ->
+    {Connector, Rest} = parse_connector(ConnectorStart),
+    parse_skewer(Rest, [Connector|Acc]);
 parse_skewer(Unknown, Acc) ->
     {lists:reverse(Acc), Unknown}.
 
@@ -190,6 +199,12 @@ parse_action([{keyword, action, P} | Rest]) ->
 parse_insertion([{keyword, insertion, P} | Rest]) ->
     {IconContent, Rest1} = parse_icon_content(Rest),
     {#insertion{icon_content=IconContent, attributes=#{start_position=>P}}, Rest1}.
+
+parse_connector([{keyword, connector, P} | Rest]) ->
+    Rest1 = skip(required, $(, Rest),
+    {Identifier, Rest2} = parse_identifier(Rest1),
+    Rest3 = skip(required, $), Rest2),
+    {#connector{identifier=Identifier, attributes=#{start_position => P}}, Rest3}.
 
 optional_parse_icon_content([{stuff, _, _}|_]=IconStart) -> parse_icon_content(IconStart);
 optional_parse_icon_content([{$(, _}|_]=IconStart) -> parse_icon_content(IconStart);
