@@ -124,12 +124,10 @@ parse_silhouette([{keyword, silhouette, P} | Rest]) ->
 
     {#silhouette{branches=Branches, attributes = #{start_position => P}}, Rest3}.
 
-parse_branches([{keyword, branch, P}|_]=Tokens) ->
-    {Branches, Rest} = parse_branches(Tokens, []);
-parse_branches(Tokens) ->
-    syntax_error("Expected a branch", Tokens).
+parse_branches([{keyword, branch, _P}|_]=Tokens) -> parse_branches(Tokens, []);
+parse_branches(Tokens) -> syntax_error("Expected a branch", Tokens).
 
-parse_branches([{keyword, branch, P}|Rest]=BranchStart, Acc) ->
+parse_branches([{keyword, branch, _}|_]=BranchStart, Acc) ->
     {Branch, Rest1} = parse_branch(BranchStart),
     parse_branches(Rest1, [Branch|Acc]);
 parse_branches(Tokens, Acc) ->
@@ -143,7 +141,7 @@ parse_branch([{keyword, branch, P}|Rest]) ->
 
     % (address|end)
     {AddressOrEnd, Rest6} = case Rest4 of
-        [{keyword, 'end', EndPosition} | Rest5] -> {'end', Rest5};
+        [{keyword, 'end', _} | Rest5] -> {'end', Rest5};
         [{keyword, address, _}|_]=AddressStart -> parse_address(AddressStart);
         _ -> syntax_error("Expected an address or end", Rest4)
     end,
