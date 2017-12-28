@@ -11,8 +11,7 @@ drakon (* Good day *) primitive {
     action (* Eat breakfast *)
     action (* Eat lunch *)
     action (* Eat dinner *)
-    end
-}
+} end
 ```
 
 Will be transformed into an easy to understand Drakon diagram.
