@@ -2,7 +2,7 @@
  [
   {description, "Bork bork bork!"},
   {vsn, "0.0.1"},
-  {modules, [borkbork, b_scanner]},
+  {modules, [borkbork, b_scanner, b_parser]},
   {registered, []},
   {applications, [
                   kernel,
