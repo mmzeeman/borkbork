@@ -1,4 +1,8 @@
 
+
+-define(DEBUG(Msg), borkbork:debug_msg(?MODULE, ?LINE, Msg)).
+
+
 -record(drakon, {
     name,
     parameters,
