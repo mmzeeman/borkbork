@@ -4,13 +4,24 @@
 
 -module(b_walk).
 
--export([walk/3, get_attribute/2, put_attribute/3]).
+-export([
+    walk/3,
+    get_attribute/2,
+    put_attribute/3
+]).
 
 -include("borkbork.hrl").
 
-walk(#drakon{}=Node, Fun, State) ->
-    node(Node, Fun, State).
+-spec walk(
+    borkbork:ast_node(),
+    fun((borkbork:ast_node(), any()) -> {borkbork:ast_node(), any()}),
+    any()) -> {borkbork:ast_node(), any()}.
+walk(#drakon{}=Node, Fun, State) -> node(Node, Fun, State).
 
+-spec node(
+    borkbork:ast_node(),
+    fun((borkbork:ast_node(), any()) -> {borkbork:ast_node(), any()}),
+    any()) -> {borkbork:ast_node(), any()}.
 node(#drakon{name=Name, parameters=Parameters, diagram=Diagram}=Node, Fun, State) ->
     {Name1, State1} = node({diagram_name, Name}, Fun, State),
     {Parameters1, State2} = node({diagram_parameters, Parameters}, Fun, State1),
@@ -19,7 +30,6 @@ node(#drakon{name=Name, parameters=Parameters, diagram=Diagram}=Node, Fun, State
     Fun(Node#drakon{name=Name1, parameters=Parameters1, diagram=Diagram1}, State3);
 
 node(#primitive{skewer=Skewer}=Node, Fun, State) ->
-    io:fwrite("~p, ~p~n", [?LINE, Skewer]),
     {Skewer1, State1} = node(Skewer, Fun, State),
     Fun(Node#primitive{skewer=Skewer1}, State1);
 
@@ -34,9 +44,7 @@ node(#branch{icon_content=I, skewer=Skewer, address=A}=Node, Fun, State) ->
     Fun(Node#branch{icon_content=I1, skewer=Skewer1, address=A1}, State3);
 
 node(#skewer{list=List}=Node, Fun, State) ->
-    io:fwrite("~p, ~p~n", [?LINE, List]),
     {List1, State1} = nodes(List, Fun, State),
-    io:fwrite("~p, ~p~n", [?LINE, List1]),
     Fun(Node#skewer{list=List1}, State1);
 
 node(#question{icon_content=I, right_label=L, right_skewer=Skewer, right_address=A}=Node, Fun, State) ->
@@ -67,22 +75,40 @@ nodes([Node|Rest], Fun, State, Acc) ->
     {Node1, State1} = Fun(Node, State),
     nodes(Rest, Fun, State1, [Node1|Acc]).
 
+-spec get_attribute(any(), borkbork:ast_node()) -> any().
 get_attribute(Key, Node) ->
     maps:get(Key, attributes(Node)).
 
+-spec put_attribute(any(), any(), borkbork:ast_node()) -> borkbork:ast_node().
 put_attribute(Key, Value, Node) ->
     Attributes1 = maps:put(Key, Value, attributes(Node)),
     set_attributes(Attributes1, Node).
 
+-spec attributes(borkbork:ast_node()) -> maps:map().
 attributes(#drakon{attributes=Attributes}) -> Attributes;
 attributes(#primitive{attributes=Attributes}) -> Attributes;
+attributes(#silhouette{attributes=Attributes}) -> Attributes;
 attributes(#skewer{attributes=Attributes}) -> Attributes;
-attributes(#action{attributes=Attributes}) -> Attributes.
+attributes(#branch{attributes=Attributes}) -> Attributes;
+attributes(#address{attributes=Attributes}) -> Attributes;
+attributes(#link{attributes=Attributes}) -> Attributes;
+attributes(#connector{attributes=Attributes}) -> Attributes;
+attributes(#question{attributes=Attributes}) -> Attributes;
+attributes(#action{attributes=Attributes}) -> Attributes;
+attributes(#insertion{attributes=Attributes}) -> Attributes.
 
-set_attributes(A, #drakon{}=Drakon) -> Drakon#drakon{attributes=A};
-set_attributes(A, #primitive{}=Primitive) -> Primitive#primitive{attributes=A};
-set_attributes(A, #skewer{}=Skewer) -> Skewer#skewer{attributes=A};
-set_attributes(A, #action{}=Action) -> Action#action{attributes=A}. 
+-spec set_attributes(maps:map(), borkbork:ast_node()) -> borkbork:ast_node().
+set_attributes(A, #drakon{}=N) -> N#drakon{attributes=A};
+set_attributes(A, #primitive{}=N) -> N#primitive{attributes=A};
+set_attributes(A, #silhouette{}=N) -> N#silhouette{attributes=A};
+set_attributes(A, #skewer{}=N) -> N#skewer{attributes=A};
+set_attributes(A, #branch{}=N) -> N#branch{attributes=A};
+set_attributes(A, #address{}=N) -> N#address{attributes=A};
+set_attributes(A, #link{}=N) -> N#link{attributes=A};
+set_attributes(A, #connector{}=N) -> N#connector{attributes=A};
+set_attributes(A, #question{}=N) -> N#question{attributes=A};
+set_attributes(A, #action{}=N) -> N#action{attributes=A};
+set_attributes(A, #insertion{}=N) -> N#insertion{attributes=A}.
 
 %%
 %% Tests
@@ -91,37 +117,47 @@ set_attributes(A, #action{}=Action) -> Action#action{attributes=A}.
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 
-walk_test() ->
-    F = fun
-        ({diagram_name, Name}, State) ->
-            {Name, maps:put(name, Name, State)};
-        ({diagram_parameters, Parameters}, State) ->
-            {Parameters, maps:put(parameters, Parameters, State)};
-        (#drakon{}=Node, State) ->
-            Node1 = put_attribute(visited, true, Node),
-            {Node1, State};
-        (#primitive{}=Node, State) ->
-            Node1 = put_attribute(visited, true, Node),
-            {Node1, maps:put(kind, primitive, State)};
-        (#skewer{}=Node, State) ->
-            {Node, State};
-        (#action{}=Node, State) ->
-            Node1 = put_attribute(visited, true, Node),
-            {Node1, State};
-        (List, State) when is_list(List) ->
-            {List, State};
-        (N, State) ->
-            ?DEBUG({todo, N}),
-            {N, State}
-    end,
+walk_fun({diagram_name, Name}, State) ->
+    {Name, maps:put(name, Name, State)};
+walk_fun({diagram_parameters, Parameters}, State) ->
+    {Parameters, maps:put(parameters, Parameters, State)};
+walk_fun(#drakon{}=Node, State) ->
+    Node1 = put_attribute(visited, true, Node),
+    {Node1, State};
+walk_fun(#primitive{}=Node, State) ->
+    Node1 = put_attribute(visited, true, Node),
+    {Node1, maps:put(kind, primitive, State)};
+walk_fun(#skewer{}=Node, State) ->
+    {Node, State};
+walk_fun(#action{}=Node, State) ->
+    Node1 = put_attribute(visited, true, Node),
+    {Node1, State};
+walk_fun(List, State) when is_list(List) ->
+    {List, State};
+walk_fun(N, State) ->
+    ?DEBUG({todo, N}),
+    {N, State}.
 
+walk_test() ->
     T1 = b_scanner:scan("drakon (test) primitive { action(do_it) } end"),
     Ast = b_parser:parse(T1),
 
-    {_Ast1, State} = walk(Ast, F, #{}),
+    {_Ast1, State} = walk(Ast, fun walk_fun/2, #{}),
 
     ?assertEqual(<<"test">>, maps:get(name, State)),
     ?assertEqual(undefined, maps:get(parameters, State)),
+    ?assertEqual(primitive, maps:get(kind, State)),
+
+    ok.
+
+walk2_test() ->
+    T1 = b_scanner:scan("drakon (test) (test1) primitive { action(do_it) } end"),
+    Ast = b_parser:parse(T1),
+
+    {_Ast1, State} = walk(Ast, fun walk_fun/2, #{}),
+
+    ?assertEqual(<<"test">>, maps:get(name, State)),
+    ?assertEqual(<<"test1">>, maps:get(parameters, State)),
     ?assertEqual(primitive, maps:get(kind, State)),
 
     ok.

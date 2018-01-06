@@ -11,6 +11,13 @@
 
 -include("borkbork.hrl").
 
+-type ast_node() ::
+    #drakon{} | #primitive{} | #silhouette{} | #skewer{} | #branch{} | #question{} | #action{} | #insertion{} | #address{} | #link{} | #connector{}.
+
+-export_type([
+    ast_node/0
+]).
+
 parse(Filename) ->
     case file:read_file(Filename) of
         {ok, Data} ->
