@@ -37,7 +37,7 @@
                     <rect x="100" y="360" width="200" height="80" class="icon" />
                     <text x="200" y="400" class="icon-text">Eat dinner</text>
 
-                    <rect x="125" y="480" rx="40" ry="40"  x="100" width="150" height="80" class="icon" />
+                    <rect x="125" y="480" rx="40" ry="40" width="150" height="80" class="icon" />
                     <text x="200" y="520" class="icon-text">End</text>
 
 </svg>
