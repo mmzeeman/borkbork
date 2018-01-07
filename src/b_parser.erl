@@ -4,6 +4,7 @@
 %%
 %% @author Maas-Maarten Zeeman
 %% @copyright (c) 2018 Maas-Maarten Zeeman <me@mmzeeman.nl>
+
 -module(b_parser).
 
 -export([
