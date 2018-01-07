@@ -1,0 +1,41 @@
+ <svg width="400" height="800">
+        <style>
+            /* <![CDATA[ */
+            .icon {
+                stroke-width: 2;
+                stroke:rgb(0,0,0);
+                fill: rgb(255,255,255);
+            }
+
+            .icon-text {
+                font-family: Arial, sans-serif;
+                font-size: 25;
+                fill: rgb(0,0,0);
+                text-anchor: middle;
+                alignment-baseline: middle;
+            }
+
+            .skewer {
+                stroke-width: 2;
+                stroke:rgb(0,0,0);
+            }
+            /* ]]> */
+        </style>
+                    <line x1="200" y1="0" x2="200" y2="500" class="skewer"/>
+
+                    <rect rx="40" ry="40"  x="100" width="200" height="80" class="icon" />
+                    <text x="200" y="40" class="icon-text">Good day</text>
+
+                    <rect x="100" y="120" width="200" height="80" class="icon" />
+                    <text x="200" y="160" class="icon-text">Eat breakfast</text>
+
+                    <rect x="100" y="240" width="200" height="80" class="icon" />
+                    <text x="200" y="280" class="icon-text">Eat lunch</text>
+
+                    <rect x="100" y="360" width="200" height="80" class="icon" />
+                    <text x="200" y="400" class="icon-text">Eat dinner</text>
+
+                    <rect x="125" y="480" rx="40" ry="40"  x="100" width="150" height="80" class="icon" />
+                    <text x="200" y="520" class="icon-text">End</text>
+
+</svg>
