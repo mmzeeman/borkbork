@@ -24,7 +24,7 @@
         </style>
                     <line x1="200" y1="0" x2="200" y2="500" class="skewer"/>
 
-                    <rect rx="40" ry="40"  x="100" width="200" height="80" class="icon" />
+                    <rect rx="40" ry="40" y="2" x="100" width="200" height="80" class="icon" />
                     <text x="200" y="40" class="icon-text">Good day</text>
 
                     <rect x="100" y="120" width="200" height="80" class="icon" />
