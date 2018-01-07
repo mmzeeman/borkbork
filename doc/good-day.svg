@@ -1,5 +1,7 @@
- <svg width="400" height="800">
-        <style>
+ 
+
+<svg width="400" height="800">
+        <style type="text/css">
             /* <![CDATA[ */
             .icon {
                 stroke-width: 2;
