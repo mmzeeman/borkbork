@@ -14,14 +14,17 @@
 
 -include("borkbork.hrl").
 
+-define(MARGIN, 20).
+-define(END_LABEL, <<"End">>).
+
 
 svg(#drakon{}) ->
      [
-         element_open("svg"),
+         element_open("svg", [{xmlns, "http://www.w3.org/2000/svg"}]),
          style(),
-         title_icon("Title"),
+         title_icon("Title", 40, 80),
 
-         end_icon(),
+         end_icon(40, 80),
          element_close("svg")
      ].
 
@@ -55,35 +58,42 @@ drakon_style() ->
             /* ]]> */
     ".
 
-title_icon(Text) ->
+title_icon(Text, X, Height) ->
+    R = Height div 2,
+    BText = z_convert:to_binary(Text),
+    Width = b_svg:estimate_text_width(BText, 24) + (2 * ?MARGIN),
     [
         element_void(rect, [
             {class, icon},
-            {width, 200},
-            {height, 80},
-            {rx, 40},
-            {ry, 40}
+            {width, Width},
+            {height, Height},
+            {x, X},
+            {rx, R},
+            {ry, R}
          ]),
 
         element_open(text),
-        text(Text),
+        text(BText),
         element_close(text)
     ].
 
-end_icon() ->
+end_icon(X, Height) ->
+    R = Height div 2,
+    Width = b_svg:estimate_text_width(?END_LABEL, 24) + (2 * ?MARGIN),
     [
         element_void(rect, [
             {class, icon},
 
-            {width, 150},
-            {height, 80},
+            {width, Width},
+            {height, Height},
 
-            {rx, 40},
-            {ry, 40}
+            {x, X},
+
+            {rx, R}, {ry, R}
          ]),
 
         element_open(text),
-        text("End"),
+        text(?END_LABEL),
         element_close(text)
     ].
 
@@ -146,7 +156,7 @@ element_close_test() ->
     ?assertEqual(<<"</tag>">>, element_close(tag)).
 
 svg_test() ->
-    ?DEBUG(svg(#drakon{})).
+    ?DEBUG(iolist_to_binary(svg(#drakon{}))).
 
 -endif.
 

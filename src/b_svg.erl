@@ -10,7 +10,7 @@
 -export([estimate_text_width/2]).
 
 % @doc Make a crude estimate what the width of the text will be.
-estimate_text_width(Text, FontSize) -> FontSize * (estimate_width(Text, 0) / 15.0).
+estimate_text_width(Text, FontSize) -> round(FontSize * (estimate_width(Text, 0) / 15.0)).
 
 %%
 %% Helpers
@@ -45,8 +45,8 @@ char_width(Char) ->
 -include_lib("eunit/include/eunit.hrl").
 
 estimate_width_test() ->
-    ?assertEqual(72, round(estimate_text_width(<<"Maas">>, 24))),
-    ?assertEqual(261, round(estimate_text_width(<<"Willem van Oranje">>, 24))),
+    ?assertEqual(72, estimate_text_width(<<"Maas">>, 24)),
+    ?assertEqual(261, estimate_text_width(<<"Willem van Oranje">>, 24)),
     ok.
 
 
